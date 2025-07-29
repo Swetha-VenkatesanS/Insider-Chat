@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Insider Chat</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Fira Code', monospace;
+      margin: 0;
+      padding: 0;
+      background-color: #000;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    #chat-title {
+      font-size: 1.8rem;
+      font-weight: 700;
+      text-align: center;
+      padding: 20px 12px 4px;
+      background-color: #000;
+      border-bottom: 1px solid #333;
+    }
+    #chat-subtitle {
+      font-size: 0.9rem;
+      text-align: center;
+      color: #aaa;
+      margin-bottom: 10px;
+    }
+    #chat {
+      flex-grow: 1;
+      padding: 0 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    .message {
+      padding: 10px 15px;
+      border-radius: 20px;
+      margin: 10px 0;
+      max-width: 60%;
+      display: inline-block;
+      word-wrap: break-word;
+      font-size: 15px;
+    }
+    .user {
+      align-self: flex-end;
+      background-color: #a0f0a0;
+      color: black;
+    }
+    .bot {
+      align-self: flex-start;
+      background-color: #f1f1f1;
+      color: black;
+    }
+    .streaming {
+      border-left: 3px solid #4CAF50;
+      animation: pulse 1.5s ease-in-out infinite alternate;
+    }
+    @keyframes pulse {
+      0% { border-left-color: #4CAF50; }
+      100% { border-left-color: #81C784; }
+    }
+    .typing-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #4CAF50;
+      animation: typing 1.4s infinite ease-in-out;
+      margin-left: 5px;
+    }
+    @keyframes typing {
+      0%, 80%, 100% { opacity: 0; }
+      40% { opacity: 1; }
+    }
+    #input-area {
+      display: flex;
+      padding: 12px;
+      background: #111;
+      border-top: 1px solid #333;
+      gap: 10px;
+      align-items: center;
+      position: relative;
+    }
+    .attachment-wrapper {
+      position: relative;
+    }
+    .attachment-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: white;
+      cursor: pointer;
+    }
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      bottom: 48px;
+      left: 0;
+      background-color: #222;
+      border: 1px solid #444;
+      border-radius: 8px;
+      padding: 5px 0;
+      z-index: 2;
+      width: 160px;
+    }
+    .dropdown-menu label,
+    .dropdown-menu div {
+      display: block;
+      padding: 8px 12px;
+      color: white;
+      cursor: pointer;
+    }
+    .dropdown-menu label:hover,
+    .dropdown-menu div:hover {
+      background-color: #333;
+    }
+    select, textarea, button {
+      font-size: 1rem;
+      border-radius: 8px;
+      font-family: 'Fira Code', monospace;
+    }
+    select {
+      border: 1px solid #444;
+      padding: 6px;
+      background-color: #222;
+      color: white;
+    }
+    textarea {
+      flex-grow: 1;
+      resize: none;
+      border: 1px solid #444;
+      padding: 10px;
+      background-color: #222;
+      color: white;
+    }
+    button {
+      background-color: #2e7d32;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    button:disabled {
+      background-color: #666;
+      cursor: not-allowed;
+    }
+    /* Markdown styling */
+    .message pre {
+      background-color: #2d2d2d;
+      padding: 10px;
+      border-radius: 5px;
+      overflow-x: auto;
+      color: #f8f8f2;
+    }
+    .message code {
+      background-color: #2d2d2d;
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-family: 'Fira Code', monospace;
+      color: #f8f8f2;
+    }
+    .message blockquote {
+      border-left: 4px solid #4CAF50;
+      margin: 10px 0;
+      padding-left: 10px;
+      color: #ccc;
+    }
+    .message h1, .message h2, .message h3 {
+      color: #4CAF50;
+      margin-top: 20px;
+      margin-bottom: 10px;
+    }
+    .message ul, .message ol {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+    .message table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 10px 0;
+    }
+    .message th, .message td {
+      border: 1px solid #555;
+      padding: 8px;
+      text-align: left;
+    }
+    .message th {
+      background-color: #333;
+    }
+  </style>
+</head>
+<body>
+  <div id="chat-title">Insider Chat</div>
+  <div id="chat-subtitle">for all your code assistance</div>
+
+  <div id="chat" ondragover="event.preventDefault();" ondrop="handleDrop(event)"></div>
+
+  <div id="input-area">
+    <div class="attachment-wrapper">
+      <button class="attachment-btn" onclick="toggleDropdown()">📎</button>
+      <div class="dropdown-menu" id="dropdownMenu">
+        <label for="fileUpload">📁 Upload File</label>
+        <input type="file" id="fileUpload" style="display: none" multiple />
+        <div onclick="alert('📷 Screenshot option coming soon')">📷 Take Screenshot</div>
+      </div>
+    </div>
+
+    <select id="model-select">
+      <option value="deepseek">🔍 DeepSeek</option>
+      <option value="gemini">🔮 Gemini</option>
+    </select>
+
+    <textarea id="query" rows="2" placeholder="Ask anything..."></textarea>
+    <button id="send-button">Send</button>
+  </div>
+
+  <script>
+    const vscode = acquireVsCodeApi();
+    let currentStreamingMessage = null;
+    let isStreaming = false;
+
+    // Configure marked for better rendering
+    marked.setOptions({
+      breaks: true,
+      gfm: true,
+      highlight: function(code, lang) {
+        return code; // You can add syntax highlighting here if needed
+      }
+    });
+
+    function appendMessage(text, isUser = false) {
+      const div = document.createElement('div');
+      div.className = 'message ' + (isUser ? 'user' : 'bot');
+      div.innerHTML = marked.parse(text);
+      document.getElementById('chat').appendChild(div);
+      scrollToBottom();
+      return div;
+    }
+
+    function createStreamingMessage() {
+      const div = document.createElement('div');
+      div.className = 'message bot streaming';
+      div.innerHTML = '<span class="typing-indicator"></span>';
+      document.getElementById('chat').appendChild(div);
+      scrollToBottom();
+      return div;
+    }
+
+    function updateStreamingMessage(messageElement, text) {
+      // Convert markdown to HTML and update
+      messageElement.innerHTML = marked.parse(text);
+      scrollToBottom();
+    }
+
+    function finalizeStreamingMessage(messageElement, text) {
+      messageElement.className = 'message bot'; // Remove streaming class
+      messageElement.innerHTML = marked.parse(text);
+      scrollToBottom();
+    }
+
+    function scrollToBottom() {
+      const chat = document.getElementById('chat');
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function toggleDropdown() {
+      const menu = document.getElementById('dropdownMenu');
+      menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function handleDrop(event) {
+      event.preventDefault();
+      const files = event.dataTransfer.files;
+      if (files.length > 0) {
+        appendMessage('[📁 ' + files[0].name + ' dropped]', true);
+      }
+    }
+
+    function toggleSendButton(disabled) {
+      const sendButton = document.getElementById('send-button');
+      sendButton.disabled = disabled;
+      sendButton.textContent = disabled ? 'Sending...' : 'Send';
+    }
+
+    function send() {
+      if (isStreaming) return; // Prevent sending while streaming
+      
+      const input = document.getElementById('query');
+      const model = document.getElementById('model-select').value;
+      const files = document.getElementById('fileUpload').files;
+      const text = input.value.trim();
+
+      if (!text && (!files || files.length === 0)) return;
+
+      if (files && files.length > 0) {
+        const filenames = Array.from(files).map(f => f.name).join(', ');
+        appendMessage('[📁 Uploaded: ' + filenames + ']', true);
+      } else {
+        appendMessage(text, true);
+      }
+
+      input.value = '';
+      toggleSendButton(true);
+      isStreaming = true;
+
+      vscode.postMessage({ type: 'query', text, model });
+    }
+
+    function runCommand(command) {
+      vscode.postMessage({ type: 'run-terminal-command', command });
+    }
+
+    // Handle Enter key in textarea
+    document.addEventListener('DOMContentLoaded', function() {
+      const textarea = document.getElementById('query');
+      textarea.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          send();
+        }
+      });
+    });
+
+   window.addEventListener('message', (event) => {
+  const msg = event.data;
+
+  switch (msg.type) {
+    case 'stream_start':
+      currentStreamingMessage = createStreamingMessage();
+      break;
+
+    case 'stream_chunk':
+      if (currentStreamingMessage) {
+        updateStreamingMessage(currentStreamingMessage, msg.accumulatedText);
+      }
+      break;
+
+    case 'stream_end':
+      if (currentStreamingMessage) {
+        finalizeStreamingMessage(currentStreamingMessage, msg.finalText);
+      }
+      currentStreamingMessage = null;
+      isStreaming = false;
+      toggleSendButton(false);
+      break;
+
+    case 'stream_error':
+      if (currentStreamingMessage) {
+        finalizeStreamingMessage(currentStreamingMessage, '❌ Stream error: ' + msg.error);
+      }
+      currentStreamingMessage = null;
+      isStreaming = false;
+      toggleSendButton(false);
+      break;
+
+    case 'response':
+      if (msg.text.includes('<button')) {
+        const chat = document.getElementById('chat');
+        const messageDiv = document.createElement('div');
+        messageDiv.innerHTML = msg.text;
+        messageDiv.className = 'message bot';
+        chat.appendChild(messageDiv);
+
+        const buttons = messageDiv.querySelectorAll('button[data-run]');
+        buttons.forEach(button => {
+          const command = button.getAttribute('data-run');
+          button.onclick = () => {
+            vscode.postMessage({ type: 'run-terminal-command', command });
+          };
+        });
+      } else {
+        appendMessage(msg.text);
+      }
+
+      if (msg.isComplete) {
+        isStreaming = false;
+        toggleSendButton(false);
+      }
+      break;
+  }
+});
+
+    window.onload = () => {
+      document.getElementById('send-button').addEventListener('click', send);
+    };
+  </script>
+</body>
+</html>
+`;

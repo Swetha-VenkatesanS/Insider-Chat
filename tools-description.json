@@ -1,0 +1,79 @@
+{
+  "tools": [
+    {
+      "tool_name": "fixCodeError",
+      "name": "fixCodeError",
+      "purpose": "This tool powers a code assistant embedded in a VS Code extension. Its job is to help developers fix errors in their open files, especially when users report confusing, vague, or broken behavior.",
+      "keywords": ["error", "bug", "crash", "fix", "issue", "broken"],
+      "context": [
+        "Users often report issues without providing clear error messages or code snippets.",
+        "The tool should step in when a fix is likely needed based on the user’s confusion or description.",
+        "It is only triggered based on the currently open code file, not past chat history or copied code snippets.",
+        "For general conceptual or syntax-related queries, the model should respond directly without triggering the tool."
+      ],
+      "trigger_rules": {
+        "use_if": [
+          "The user’s message implies something is broken, even if it's not clearly described.",
+          "The user shares a terminal or runtime error without pasting the code.",
+          "The user is confused, frustrated, or indicates a bug in the current file.",
+          "The issue described relates to the content of the actively open file, not a copy-pasted snippet."
+        ],
+        "do_not_use_if": [
+          "The user shares a code snippet directly in their message.",
+          "The conversation involves analysis or editing of a previously shown or discussed code block.",
+          "The user is asking theoretical, syntax-related, or general conceptual questions that do not imply a broken file."
+        ],
+        "aggressive_use_if": [
+          "The message is twisted, broken, vague, or confusing but still suggests an error in the current code.",
+          "The user expresses emotional distress ('it's crashing', 'I don't get it', 'something's wrong here') without code context.",
+          "The problem seems related to something that must be debugged in the editor file directly."
+        ],
+        "clarify_if_unsure": true
+      },
+      "tool_behavior": "Uses the content of the open file to suggest and apply a code fix. Trigger only if the issue clearly concerns the open file and no code snippet is shared directly.",
+      "examples": [
+        {
+          "input": "It keeps failing on line 24, but I don’t see why.",
+          "action": "Use the tool"
+        },
+        {
+          "input": "Here’s the function I'm using: def foo(x): return x + 1 – why doesn’t it return 2?",
+          "action": "Do not use the tool"
+        },
+        {
+          "input": "Some weird bug in the editor file. Nothing works after I click run.",
+          "action": "Use the tool"
+        },
+        {
+          "input": "Why does this give me a type error?",
+          "action": "Use the tool if no code is shared directly"
+        },
+        {
+          "input": "What’s the difference between a list and a tuple in Python?",
+          "action": "Do not use the tool"
+        }
+      ],
+      "standard_operating_procedure": [
+        "Analyze the user’s message for error signals, emotional language, or vague bug descriptions.",
+        "Check if the user included any direct code snippet.",
+        "If no snippet is given and the complaint is about the current file, run fixCodeError.",
+        "Avoid using the tool if the discussion focuses on previously provided code or is purely conceptual.",
+        "If unsure whether the user means the open file, ask for clarification."
+      ],
+      "final_notes": [
+        "Be proactive in debugging vague, broken, or unclear issues.",
+        "Prioritize using the open editor file as the source of truth.",
+        "The tool should never run on copy-pasted or previously discussed code.",
+        "For general queries, allow the model to respond without tool usage."
+      ]
+    },
+{
+  "tool_name": "getSystemInfo",
+  "name": "getSystemInfo",
+  "description": "Returns the current Node.js version and system platform details when requested.",
+  "keywords": ["node version", "system version", "node.js version", "os", "platform", "what node", "what system"]
+}
+
+
+  ]
+}
